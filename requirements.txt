@@ -1,5 +1,4 @@
 openmeteo-requests
+pandas
 requests-cache
 retry-requests
-numpy
-pandas
