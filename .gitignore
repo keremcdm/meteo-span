@@ -18,7 +18,6 @@ ENV/
 .cache
 .cache.sqlite
 .cache*
-turkey_weather.csv
 
 # OS files
 .DS_Store
