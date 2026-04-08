@@ -1,18 +1,26 @@
-import pandas as pd
-from api_client import CITY_NAMES, CITY_TO_PLATE, PLATE_TO_CITY, CITY_TO_COORDS, CITY_INDEX
+from api_client import (
+    CITY_NAMES,
+    CITY_TO_PLATE,
+    PLATE_TO_CITY,
+    fetch_weather_data,
+)
 from weather_codes import WEATHER_CODES
 
-def get_city_or_plate(user_input):
+import pandas as pd
 
+
+def get_city_or_plate(user_input):
+    """Resolve a user input (city name or plate code) to city info."""
     text = user_input.strip()
-    # Find the city plate if a digit is given
+
+    # If the input is digits, treat it as a plate code
     if text.isdigit():
         plate = f"{int(text):02d}"
         city = PLATE_TO_CITY.get(plate)
         if city is None:
             raise ValueError("Invalid plate code.")
     else:
-        # Find the city name regardless of upper/lower case
+        # Otherwise, find the city by name (case-insensitive)
         city = None
         for name in CITY_NAMES:
             if name.casefold() == text.casefold():
@@ -22,40 +30,52 @@ def get_city_or_plate(user_input):
             raise ValueError("Invalid city name.")
         plate = CITY_TO_PLATE[city]
 
-    idx = CITY_INDEX[city]
-    coords = CITY_TO_COORDS[city]
-    return {"city": city, "plate": plate, "index": idx, "coords": coords}
+    return {"city": city, "plate": plate}
+
 
 def get_date(user_input: str):
-
+    """Parse a day offset string like '+3', '-1', or '0'."""
     text = user_input.strip()
 
     if text.lstrip("+-").isdigit():
-        days = int(text)
-        return days
-    else:
-        raise ValueError("Invalid input! Enter in the format +N, -N or 0.")
+        return int(text)
+    raise ValueError("Invalid input! Enter in the format +N, -N or 0.")
 
 
-def get_city_day_row(city_or_plate, day_offset, csv_path="turkey_weather.csv"):
+def get_city_day_row(city_or_plate, day_offset):
+    """
+    Get a single weather row for a given city and day offset.
 
-    # Get the name or the plate of the city from the user
+    Pulls data from the in-memory cache via fetch_weather_data(),
+    so no CSV file is required. The target date is computed from
+    today + offset and looked up by date rather than by position,
+    which avoids any off-by-one errors from the API's past/forecast split.
+    """
     sel = get_city_or_plate(city_or_plate)
-
-    # Get the day offset
     offset = get_date(day_offset)
 
-    # Read the file and filter the list for the chosen city
-    df = pd.read_csv(csv_path, parse_dates=["date"])
+    # Get the full DataFrame from the cache (or fetch if expired)
+    df = fetch_weather_data()
+
+    # Filter to the chosen city
     city_df = df[df["city"] == sel["city"]].sort_values("date").reset_index(drop=True)
 
-    # Set the center of the list as today
-    center = len(city_df) // 2
-    idx = center + offset
+    # Compute the target date based on today + offset (date only, no time)
+    today = pd.Timestamp.now(tz="UTC").date()
+    target_date = today + pd.Timedelta(days=offset)
 
-    if not (0 <= idx < len(city_df)):
-        raise ValueError(f"The selected day count is out of range. Valid: {-center}..{len(city_df)-1-center}")
-    row = city_df.iloc[idx]
+    # Compare dates only (ignore time and timezone)
+    matching = city_df[city_df["date"].dt.date == target_date]
+
+    if matching.empty:
+        min_date = city_df["date"].min().date()
+        max_date = city_df["date"].max().date()
+        raise ValueError(
+            f"No data for {target_date}. "
+            f"Valid range: {min_date} to {max_date}."
+        )
+
+    row = matching.iloc[0]
     return {
         "city": row["city"],
         "plate": row["plate"],
@@ -66,20 +86,18 @@ def get_city_day_row(city_or_plate, day_offset, csv_path="turkey_weather.csv"):
         "t_min": float(row["temperature_2m_min"]),
     }
 
-def get_city_day_report(city_or_plate, day_offset, csv_path="turkey_weather.csv"):
 
-    data = get_city_day_row(city_or_plate, day_offset, csv_path=csv_path)
+def get_city_day_report(city_or_plate, day_offset):
+    """Build a human-readable weather report for a city and day offset."""
+    data = get_city_day_row(city_or_plate, day_offset)
 
-    # Getting an English description from weather codes
     code = data["weather_code"]
     desc = WEATHER_CODES.get(code, f"Unknown code {code}")
 
-    # Getting a descriptive text
-    text = (
+    return (
         f"{data['city']} ({data['plate']}) – {data['date']}\n"
         f"Weather: {desc}\n"
         f"Average: {data['t_mean']:.1f}°C  |  "
         f"Min: {data['t_min']:.1f}°C  |  "
         f"Max: {data['t_max']:.1f}°C"
     )
-    return text
