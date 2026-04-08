@@ -101,7 +101,6 @@ def fetch_weather_data():
         rows.append(df)
 
     final_df = pd.concat(rows, ignore_index=True)
-    final_df.to_csv("turkey_weather.csv", index=False, encoding="utf-8")
 
     # Update the in-memory cache
     _cached_df = final_df
