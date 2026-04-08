@@ -4,14 +4,19 @@ A modern web application that provides 7-day weather forecasts and historical da
 
 Built with **Flask**, **Tailwind CSS**, **Chart.js**, and the **Open-Meteo API**.
 
-> 🌐 **Live demo:** _deployment URL will be added soon_
+> 🌐 **Live demo:** https://meteo-span.onrender.com
 
 ---
 
 ## 📸 Screenshots
 
-> Screenshots of the light and dark mode will be added once the app is deployed.
+![MeteoSpan Dashboard in Dark Mode](assets/screenshot_1.png)
 
+![MeteoSpan Dashboard in Light Mode](assets/screenshot_2.png)
+
+![MeteoSpan Properties in Dark Mode](assets/screenshot_4.png)
+
+![MeteoSpan Properties in Light Mode](assets/screenshot_3.png)
 ---
 
 ## ✨ Features
