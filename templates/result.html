@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MeteoSpan - Result</title>
+</head>
+<body>
+    <h1>🌤️ Weather Report</h1>
+
+    {% if error %}
+        <p>❌ <strong>Error:</strong> {{ error }}</p>
+    {% else %}
+        <p><strong>City:</strong> {{ city }}</p>
+        <p><strong>Day offset:</strong> {{ day_offset }}</p>
+        <hr>
+        <pre>{{ report }}</pre>
+    {% endif %}
+
+    <br>
+    <a href="/">← Back to home</a>
+</body>
+</html>

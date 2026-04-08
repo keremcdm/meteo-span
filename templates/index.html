@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block title %}MeteoSpan - Turkish Weather Forecast{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Intro -->
+    <div class="text-center space-y-2">
+        <h2 class="text-3xl font-bold">Turkish Weather Forecast</h2>
+        <p class="text-slate-600 dark:text-slate-400">
+            Get a 7-day weather report for any of the 81 provinces.
+        </p>
+    </div>
+
+    <!-- Form card -->
+    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-md p-6">
+        <form method="POST" class="space-y-4">
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                <!-- City dropdown -->
+                <div>
+                    <label for="city" class="block text-sm font-semibold mb-1">City</label>
+                    <select
+                        name="city"
+                        id="city"
+                        required
+                        class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                        <option value="">-- Select a city --</option>
+                        {% for city in cities %}
+                            <option value="{{ city }}" {% if city == selected_city %}selected{% endif %}>{{ city }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Day dropdown -->
+                <div>
+                    <label for="day_offset" class="block text-sm font-semibold mb-1">Day</label>
+                    <select
+                        name="day_offset"
+                        id="day_offset"
+                        required
+                        class="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                        <option value="-7" {% if selected_day == "-7" %}selected{% endif %}>7 days ago</option>
+                        <option value="-3" {% if selected_day == "-3" %}selected{% endif %}>3 days ago</option>
+                        <option value="-1" {% if selected_day == "-1" %}selected{% endif %}>Yesterday</option>
+                        <option value="0"  {% if selected_day == "0"  %}selected{% endif %}>Today</option>
+                        <option value="+1" {% if selected_day == "+1" %}selected{% endif %}>Tomorrow</option>
+                        <option value="+3" {% if selected_day == "+3" %}selected{% endif %}>In 3 days</option>
+                        <option value="+7" {% if selected_day == "+7" %}selected{% endif %}>In 7 days</option>
+                    </select>
+                </div>
+
+            </div>
+
+            <!-- Submit button -->
+            <button
+                type="submit"
+                class="w-full py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-colors"
+            >
+                Get Weather
+            </button>
+        </form>
+    </div>
+
+    <!-- Favorites card -->
+    <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-md p-6">
+        <h3 class="font-semibold mb-3">⭐ Favorite Cities</h3>
+        <div id="favorites-list" class="flex flex-wrap gap-2">
+            <!-- Favorites will be added here by JavaScript -->
+            <p id="no-favorites" class="text-sm text-slate-500 dark:text-slate-400">
+                No favorites yet. Add a city using the star button after getting a weather report.
+            </p>
+        </div>
+    </div>
+
+    <!-- Error message -->
+    {% if error %}
+        <div class="bg-red-100 dark:bg-red-900/30 border border-red-300 dark:border-red-700 text-red-800 dark:text-red-200 rounded-lg p-4">
+            <strong>Error:</strong> {{ error }}
+        </div>
+    {% endif %}
+
+    <!-- Weather report -->
+    {% if report %}
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-md p-6 space-y-4">
+            <div class="flex justify-between items-start">
+                <h3 class="text-xl font-bold">Weather Report</h3>
+                <button
+                    id="favorite-btn"
+                    data-city="{{ selected_city }}"
+                    class="px-3 py-1 rounded-lg border border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                >
+                    <span class="favorite-add">⭐ Add to favorites</span>
+                    <span class="favorite-remove hidden">❌ Remove from favorites</span>
+                </button>
+            </div>
+            <pre class="bg-slate-50 dark:bg-slate-900 rounded-lg p-4 font-mono text-sm overflow-x-auto">{{ report }}</pre>
+        </div>
+    {% endif %}
+
+    <!-- Chart -->
+    {% if chart_data %}
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-md p-6">
+            <h3 class="text-xl font-bold mb-4">15-Day Temperature Trend</h3>
+            <canvas id="weather-chart"></canvas>
+        </div>
+
+        <script>
+            // Chart data from Flask (rendered as JSON by Jinja2's |tojson filter)
+            const chartData = {{ chart_data|tojson }};
+
+            const ctx = document.getElementById('weather-chart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: chartData.labels,
+                    datasets: [
+                        {
+                            label: 'Max (°C)',
+                            data: chartData.max,
+                            borderColor: 'rgb(239, 68, 68)',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            tension: 0.3,
+                        },
+                        {
+                            label: 'Mean (°C)',
+                            data: chartData.mean,
+                            borderColor: 'rgb(59, 130, 246)',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            tension: 0.3,
+                        },
+                        {
+                            label: 'Min (°C)',
+                            data: chartData.min,
+                            borderColor: 'rgb(34, 197, 94)',
+                            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                            tension: 0.3,
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'top' }
+                    }
+                }
+            });
+        </script>
+    {% endif %}
+
+</div>
+
+<!-- Favorites logic -->
+<script>
+    // Load favorites from localStorage on page load
+    function loadFavorites() {
+        const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+        const listEl = document.getElementById('favorites-list');
+        const noFavEl = document.getElementById('no-favorites');
+
+        // Clear existing chips (but keep the "no favorites" message element for re-use)
+        listEl.querySelectorAll('.favorite-chip').forEach(el => el.remove());
+
+        if (favorites.length === 0) {
+            noFavEl.classList.remove('hidden');
+            return;
+        }
+
+        noFavEl.classList.add('hidden');
+
+        favorites.forEach(city => {
+            const chip = document.createElement('form');
+            chip.method = 'POST';
+            chip.className = 'favorite-chip';
+            chip.innerHTML = `
+                <input type="hidden" name="city" value="${city}">
+                <input type="hidden" name="day_offset" value="0">
+                <button type="submit" class="px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-900/60 text-sm font-medium transition-colors">
+                    ${city}
+                </button>
+            `;
+            listEl.appendChild(chip);
+        });
+    }
+
+    // Add or remove the current city from favorites
+    function toggleFavorite(city) {
+        let favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+
+        if (favorites.includes(city)) {
+            favorites = favorites.filter(c => c !== city);
+        } else {
+            favorites.push(city);
+        }
+
+        localStorage.setItem('favorites', JSON.stringify(favorites));
+        loadFavorites();
+        updateFavoriteButton(city);
+    }
+
+    // Update the "Add/Remove favorite" button label
+    function updateFavoriteButton(city) {
+        const btn = document.getElementById('favorite-btn');
+        if (!btn) return;
+
+        const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+        const addLabel = btn.querySelector('.favorite-add');
+        const removeLabel = btn.querySelector('.favorite-remove');
+
+        if (favorites.includes(city)) {
+            addLabel.classList.add('hidden');
+            removeLabel.classList.remove('hidden');
+        } else {
+            addLabel.classList.remove('hidden');
+            removeLabel.classList.add('hidden');
+        }
+    }
+
+    // Wire up the favorite button if a report is shown
+    document.addEventListener('DOMContentLoaded', () => {
+        loadFavorites();
+
+        const btn = document.getElementById('favorite-btn');
+        if (btn) {
+            const city = btn.dataset.city;
+            updateFavoriteButton(city);
+            btn.addEventListener('click', () => toggleFavorite(city));
+        }
+    });
+</script>
+{% endblock %}
